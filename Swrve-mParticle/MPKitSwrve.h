@@ -1,5 +1,10 @@
 #import <Foundation/Foundation.h>
+
+#if defined(__has_include) && __has_include(<SwrveSDKCommon/SwrvePush.h>)
+#import <SwrveSDKCommon/SwrvePush.h>
+#else
 #import "SwrvePush.h"
+#endif
 #if defined(__has_include) && __has_include(<mParticle_Apple_SDK/mParticle.h>)
 #import <mParticle_Apple_SDK/mParticle.h>
 #else
