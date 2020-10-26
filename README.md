@@ -7,16 +7,16 @@ This repository contains the [Swrve](https://www.swrve.com/) integration for the
 1. Add the kit dependency to your app's Podfile or Cartfile:
 
     ```
-    pod 'Swrve-mParticle', '~> 0.1.0'
+    pod 'Swrve-mParticle', '~> 1.0.0'
     ```
 
     OR
 
     ```
-    github 'mparticle-integrations/mparticle-apple-integration-swrve' ~> 0.1.0
+    github 'mparticle-integrations/mparticle-apple-integration-swrve' ~> 1.0.0
     ```
 
-2. Follow the mParticle iOS SDK [quick-start](https://github.com/mParticle/mparticle-apple-sdk), then rebuild and launch your app, and verify that you see `"Included kits: { Swrve }"` in your Xcode console 
+2. Follow the mParticle iOS SDK [quick-start](https://github.com/mParticle/mparticle-apple-sdk), then rebuild and launch your app, and verify that you see `"Included kits: { Swrve }"` in your Xcode console
 
 > (This requires your mParticle log level to be at least Debug)
 

@@ -17,5 +17,6 @@
 @property (nonatomic, strong, nullable) NSDictionary *launchOptions;
 @property (nonatomic, unsafe_unretained, readonly) BOOL started;
 @property (nonatomic, unsafe_unretained, readonly) BOOL init_called;
+@property (nonatomic, unsafe_unretained, readonly) NSString* _Nullable user_id;
 
 @end

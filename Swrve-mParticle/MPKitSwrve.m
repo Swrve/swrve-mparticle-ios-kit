@@ -8,7 +8,7 @@
 #import "SwrveSDK.h"
 #endif
 
-NSString *const SwrveMParticleVersionNumber = @"0.1.0";
+NSString *const SwrveMParticleVersionNumber = @"1.0.0";
 
 @implementation MPKitSwrve
 /*
@@ -31,6 +31,7 @@ NSString *const SwrveMParticleVersionNumber = @"0.1.0";
 
 #pragma mark Kit instance and lifecycle
 - (MPKitExecStatus *)didFinishLaunchingWithConfiguration:(NSDictionary *)configuration {
+    DebugLog(@"MPKitSwrve : configuration: %@", configuration);
     NSString *appId = configuration[@"app_id"];
     NSString *apiKey = configuration[@"api_key"];
     if (!apiKey || !appId) {
@@ -56,8 +57,8 @@ NSString *const SwrveMParticleVersionNumber = @"0.1.0";
         SwrveConfig* config = [[SwrveConfig alloc] init];
         MPKitAPI *kitAPI = [[MPKitAPI alloc] init];
         FilteredMParticleUser *currentUser = [kitAPI getCurrentUserWithKit:self];
-        //MPIdentityApi* currentId = [[MParticle sharedInstance] identity];
         NSNumber *mpid = currentUser.userId;
+        config.initMode = SWRVE_INIT_MODE_MANAGED;
         config.pushResponseDelegate = self;
         config.pushEnabled = YES;
         config.autoCollectDeviceToken = NO;
@@ -65,20 +66,24 @@ NSString *const SwrveMParticleVersionNumber = @"0.1.0";
         config.appGroupIdentifier = [@"group." stringByAppendingString:[[NSBundle mainBundle] bundleIdentifier]];
         self->_started=YES;
         
-        config.userId = mpid.stringValue;
-        if ([config.userId isEqual:@"0"]){
-            return;
-        }
+        self->_user_id = mpid.stringValue;
+
         
-        //        _configuration = self->_configuration;
+
         [SwrveSDK sharedInstanceWithAppID: appId
                                    apiKey: apiKey
                                    config: config];
+        // If value from mpid is "0", then no mpid fetched yet - don't start SDK.
+        if ([[self user_id] isEqual:@"0"]){
+            return;
+        }
+        
+        if (![SwrveSDK started]){
+            [SwrveSDK startWithUserId:[self user_id]];
+        }
         self->_init_called=YES;
         [SwrveSDK userUpdate:@{@"swrve.mparticle_ios_integration_version":SwrveMParticleVersionNumber}];
         [SwrveSDK sendQueuedEvents];
-        
-//        self->_started = YES;
         
         dispatch_async(dispatch_get_main_queue(), ^{
             NSDictionary *userInfo = @{mParticleKitInstanceKey:[[self class] kitCode]};
@@ -99,26 +104,24 @@ NSString *const SwrveMParticleVersionNumber = @"0.1.0";
 /*
     Implement this method if your SDK handles a user interacting with a remote notification action
 */
- - (MPKitExecStatus *)handleActionWithIdentifier:(NSString *)identifier forRemoteNotification:(NSDictionary *)userInfo {
-     /*  Your code goes here.
-         If the execution is not successful, please use a code other than MPKitReturnCodeSuccess for the execution status.
-         Please see MPKitExecStatus.h for all exec status codes
-      */
-     [SwrveSDK pushNotificationReceived:userInfo];
-     return [self execStatus:MPKitReturnCodeSuccess];
- }
+// - (MPKitExecStatus *)handleActionWithIdentifier:(NSString *)identifier forRemoteNotification:(NSDictionary *)userInfo {
+//     /*  Your code goes here.
+//         If the execution is not successful, please use a code other than MPKitReturnCodeSuccess for the execution status.
+//         Please see MPKitExecStatus.h for all exec status codes
+//      */
+//     return [self execStatus:MPKitReturnCodeSuccess];
+// }
 
 /*
     Implement this method if your SDK receives and handles remote notifications
 */
- - (MPKitExecStatus *)receivedUserNotification:(NSDictionary *)userInfo {
-     /*  Your code goes here.
-         If the execution is not successful, please use a code other than MPKitReturnCodeSuccess for the execution status.
-         Please see MPKitExecStatus.h for all exec status codes
-      */
-     [SwrveSDK pushNotificationReceived:userInfo];
-     return [self execStatus:MPKitReturnCodeSuccess];
- }
+// - (MPKitExecStatus *)receivedUserNotification:(NSDictionary *)userInfo {
+//     /*  Your code goes here.
+//         If the execution is not successful, please use a code other than MPKitReturnCodeSuccess for the execution status.
+//         Please see MPKitExecStatus.h for all exec status codes
+//      */
+//     return [self execStatus:MPKitReturnCodeSuccess];
+// }
 
 /*
     Implement this method if your SDK registers the device token for remote notifications
@@ -135,10 +138,6 @@ NSString *const SwrveMParticleVersionNumber = @"0.1.0";
 /** SwrvePushResponseDelegate
     Implement the following methods if you want to interact with a push action reponse
  **/
-
-- (void) processNotificationResponse:(UNNotificationResponse *)response  API_AVAILABLE(ios(10.0)){
-    [SwrveSDK processNotificationResponseWithIdentifier:response.actionIdentifier andUserInfo:response.notification.request.content.userInfo];
-}
 
 - (void) didReceiveNotificationResponse:(UNNotificationResponse *)response withCompletionHandler:(void (^)(void))completionHandler  API_AVAILABLE(ios(10.0)){
     
@@ -276,17 +275,18 @@ NSString *const SwrveMParticleVersionNumber = @"0.1.0";
     static dispatch_once_t swrvePredicate;
     
     dispatch_once(&swrvePredicate, ^{
-        SwrveConfig *config = [[SwrveConfig alloc] init];
         MPKitAPI *kitAPI = [[MPKitAPI alloc] init];
         FilteredMParticleUser *currentUser = [kitAPI getCurrentUserWithKit:self];
         NSNumber *mpid = currentUser.userId;
-        config.pushResponseDelegate = self;
-        config.pushEnabled = YES;
-        config.autoCollectDeviceToken = NO;
-        config.pushNotificationEvents = [[NSSet alloc] init];
     
-        config.userId = mpid.stringValue;
-        [SwrveSDK sharedInstanceWithAppID:[self.configuration[@"app_id"] intValue] apiKey:self.configuration[@"api_key"] config:config];
+        self->_user_id = mpid.stringValue;
+        // If value from mpid is "0", then no mpid fetched yet - don't start SDK.
+        if ([[self user_id] isEqual:@"0"]){
+            return;
+        }
+        if (![SwrveSDK started]){
+            [SwrveSDK startWithUserId:[self user_id]];
+        }
         self->_init_called=YES;
         [SwrveSDK userUpdate:@{@"swrve.mparticle_ios_integration_version":SwrveMParticleVersionNumber}];
         [SwrveSDK sendQueuedEvents];
