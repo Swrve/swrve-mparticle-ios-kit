@@ -8,7 +8,7 @@
 #import "SwrveSDK.h"
 #endif
 
-NSString *const SwrveMParticleVersionNumber = @"1.0.0";
+NSString *const SwrveMParticleVersionNumber = @"2.0.0";
 
 @implementation MPKitSwrve
 /*
@@ -27,71 +27,164 @@ NSString *const SwrveMParticleVersionNumber = @"1.0.0";
     return [[MPKitExecStatus alloc] initWithSDKCode:self.class.kitCode returnCode:returnCode];
 }
 
+#pragma mark - private methods for MPKitSwrve identity calls
+- (void) startSwrveSDK:(FilteredMParticleUser*) user {
+    NSString* user_id;
+    if (_user_id_type == 100) {
+        user_id = user.userId.stringValue;
+        if (![SwrveSDK started] || SwrveSDK.userID != user_id){
+            [SwrveSDK startWithUserId:user_id];
+            self->_init_called = YES;
+            return;
+        }
+    } else {
+        if ([user.userIdentities objectForKey:@(_user_id_type)]){
+            user_id = user.userIdentities[@(_user_id_type)];
+            if(![SwrveSDK started] || SwrveSDK.userID != user_id){
+                [SwrveSDK startWithUserId:user_id];
+                self->_init_called = YES;
+                return;
+            }
+        }
+    }
+}
+
+- (void) identifySwrveUser:(FilteredMParticleUser*) user {
+    NSString* external_user_id;
+    if (_user_id_type == 100){
+        external_user_id = user.userId.stringValue;
+        if ([[SwrveSDK externalUserId]  isEqual: @""] || [SwrveSDK externalUserId] != external_user_id) {
+            [SwrveSDK identify:external_user_id onSuccess:^(NSString *status, NSString* swrveUserId){
+                DebugLog(@"Swrve Identity call successful. External ID: %@ . Status: %@ . Swrve User ID: %@", external_user_id, status, swrveUserId );
+            } onError:^(NSInteger httpCode, NSString *errorMessage){
+                DebugLog(@"Swrve Identity call failed with code %li . Message: %@", (long)httpCode, errorMessage);
+            }];
+            self->_init_called = YES;
+            return;
+        }
+
+    } else {
+        if (user.userIdentities[@(_user_id_type)]){
+            external_user_id = user.userIdentities[@(_user_id_type)];
+            if([[SwrveSDK externalUserId] isEqual: @""] || [SwrveSDK externalUserId] != external_user_id) {
+                [SwrveSDK identify:external_user_id onSuccess:^(NSString *status, NSString* swrveUserId){
+                    DebugLog(@"Swrve Identity call successful. External ID: %@ . Status: %@ . Swrve User ID: %@", external_user_id, status, swrveUserId );
+                } onError:^(NSInteger httpCode, NSString *errorMessage){
+                    DebugLog(@"Swrve Identity call failed with code %li . Message: %@", (long)httpCode, errorMessage);
+                }];
+                self->_init_called = YES;
+                return;
+            }
+        }
+    }
+}
+
+- (void) identityMethodsStart:(FilteredMParticleUser*) user {
+    if (_init_mode == SWRVE_INIT_MODE_MANAGED) {
+        [self startSwrveSDK:user];
+    }
+    if (_init_mode == SWRVE_INIT_MODE_AUTO) {
+        [self identifySwrveUser:user];
+    }
+}
+
+
 #pragma mark - MPKitInstanceProtocol methods
 
 #pragma mark Kit instance and lifecycle
 - (MPKitExecStatus *)didFinishLaunchingWithConfiguration:(NSDictionary *)configuration {
     DebugLog(@"MPKitSwrve : configuration: %@", configuration);
-    NSString *appId = configuration[@"app_id"];
+    int appId = [configuration[@"app_id"] intValue];
     NSString *apiKey = configuration[@"api_key"];
     if (!apiKey || !appId) {
         return [self execStatus:MPKitReturnCodeRequirementsNotMet];
     }
     
+    self->_init_mode = SWRVE_INIT_MODE_MANAGED;
+    if ([configuration objectForKey:@"initialization_mode"]) {
+        self->_init_mode = [configuration[@"initialization_mode"] isEqual:@"AUTO"] ? SWRVE_INIT_MODE_AUTO : SWRVE_INIT_MODE_MANAGED;
+    }
+    if (self->_init_mode == SWRVE_INIT_MODE_MANAGED ){
+        self->_user_id_type = 100;
+        if ([configuration objectForKey:@"swrve_user_id"]){
+            self->_user_id_type = [configuration[@"swrve_user_id"] isEqual:@"MPID"] ? 100 : MPUserIdentityCustomerId;
+        }
+    }
+    if (self->_init_mode == SWRVE_INIT_MODE_AUTO){
+        self->_user_id_type = MPUserIdentityCustomerId;
+        if ([configuration objectForKey:@"external_user_id"]){
+            NSString *user_type = configuration[@"external_user_id"];
+            if ([user_type isEqualToString:@"MPID"]) {
+                self->_user_id_type = 100;
+            } else if ([user_type isEqualToString:@"Customer ID"]) {
+                self->_user_id_type = MPUserIdentityCustomerId;
+            } else if ([user_type isEqualToString:@"Other"]) {
+                self->_user_id_type = MPUserIdentityOther;
+            } else if ([user_type isEqualToString:@"Other2"]) {
+                self->_user_id_type = MPUserIdentityOther2;
+            } else if ([user_type isEqualToString:@"Other3"]) {
+                self->_user_id_type = MPUserIdentityOther3;
+            } else if ([user_type isEqualToString:@"Other4"]) {
+                self->_user_id_type = MPUserIdentityOther4;
+            } else if ([user_type isEqualToString:@"Other5"]) {
+                self->_user_id_type = MPUserIdentityOther5;
+            } else if ([user_type isEqualToString:@"Other6"]) {
+                self->_user_id_type = MPUserIdentityOther6;
+            } else if ([user_type isEqualToString:@"Other7"]) {
+                self->_user_id_type = MPUserIdentityOther7;
+            } else if ([user_type isEqualToString:@"Other8"]) {
+                self->_user_id_type = MPUserIdentityOther8;
+            } else if ([user_type isEqualToString:@"Other9"]) {
+                self->_user_id_type = MPUserIdentityOther9;
+            } else if ([user_type isEqualToString:@"Other10"]) {
+                self->_user_id_type = MPUserIdentityOther10;
+            }
+        }
+    }
+    
     _configuration = configuration;
     _started=NO;
+
+
     
     return [self execStatus:MPKitReturnCodeSuccess];
 }
 
 - (void)start {
     _init_called=NO;
+    /*
+        Start your SDK here. The configuration dictionary can be retrieved from self->_configuration
+    */
     static dispatch_once_t swrvePredicate;
     
     dispatch_once(&swrvePredicate, ^{
-        /*
-         Start your SDK here. The configuration dictionary can be retrieved from self->_configuration
-         */
-        int appId = [self.configuration[@"app_id"] intValue];
-        NSString *apiKey = self.configuration[@"api_key"];
+        int appId = [self->_configuration[@"app_id"] intValue];
+        NSString *apiKey = self->_configuration[@"api_key"];
         SwrveConfig* config = [[SwrveConfig alloc] init];
-        MPKitAPI *kitAPI = [[MPKitAPI alloc] init];
-        FilteredMParticleUser *currentUser = [kitAPI getCurrentUserWithKit:self];
-        NSNumber *mpid = currentUser.userId;
-        config.initMode = SWRVE_INIT_MODE_MANAGED;
+        if ([self->_configuration objectForKey:@"swrve_stack"]){
+            NSString *stack = self->_configuration[@"swrve_stack"];
+            if ([stack isEqual:@"EU"]){
+                config.stack = SWRVE_STACK_EU;
+            }
+        }
+        config.initMode = self->_init_mode;
         config.pushResponseDelegate = self;
         config.pushEnabled = YES;
         config.autoCollectDeviceToken = NO;
-        config.pushNotificationEvents = [[NSSet alloc] init];
+        config.pushNotificationEvents = [[NSSet alloc] initWithArray:@[@"other.swrve_push_opt_in"]];
         config.appGroupIdentifier = [@"group." stringByAppendingString:[[NSBundle mainBundle] bundleIdentifier]];
-        self->_started=YES;
         
-        self->_user_id = mpid.stringValue;
-
-        
-
         [SwrveSDK sharedInstanceWithAppID: appId
                                    apiKey: apiKey
                                    config: config];
-        // If value from mpid is "0", then no mpid fetched yet - don't start SDK.
-        if ([[self user_id] isEqual:@"0"]){
-            return;
-        }
-        
-        if (![SwrveSDK started]){
-            [SwrveSDK startWithUserId:[self user_id]];
-        }
-        self->_init_called=YES;
-        [SwrveSDK userUpdate:@{@"swrve.mparticle_ios_integration_version":SwrveMParticleVersionNumber}];
-        [SwrveSDK sendQueuedEvents];
-        
         dispatch_async(dispatch_get_main_queue(), ^{
             NSDictionary *userInfo = @{mParticleKitInstanceKey:[[self class] kitCode]};
             
             [[NSNotificationCenter defaultCenter] postNotificationName:mParticleKitDidBecomeActiveNotification
-                                                                object:nil
-                                                              userInfo:userInfo];
+                                                                    object:nil
+                                                                  userInfo:userInfo];
         });
+    self->_started=YES; // if not set to YES here, identity calls not sent to Swrve later
     });
 }
 
@@ -111,10 +204,10 @@ NSString *const SwrveMParticleVersionNumber = @"1.0.0";
 //      */
 //     return [self execStatus:MPKitReturnCodeSuccess];
 // }
-
-/*
-    Implement this method if your SDK receives and handles remote notifications
-*/
+//
+///*
+//    Implement this method if your SDK receives and handles remote notifications
+//*/
 // - (MPKitExecStatus *)receivedUserNotification:(NSDictionary *)userInfo {
 //     /*  Your code goes here.
 //         If the execution is not successful, please use a code other than MPKitReturnCodeSuccess for the execution status.
@@ -135,14 +228,26 @@ NSString *const SwrveMParticleVersionNumber = @"1.0.0";
     return [self execStatus:MPKitReturnCodeSuccess];
  }
 
+- (MPKitExecStatus *)userNotificationCenter:(UNUserNotificationCenter *)center willPresentNotification:(UNNotification *)notification API_AVAILABLE(ios(10.0)){
+    [self willPresentNotification:notification withCompletionHandler:nil];
+    return [self execStatus:MPKitReturnCodeSuccess];
+
+}
+
+- (MPKitExecStatus *)userNotificationCenter:(UNUserNotificationCenter *)center didReceiveNotificationResponse:(nonnull UNNotificationResponse *)response API_AVAILABLE(ios(10.0)){
+    [self didReceiveNotificationResponse:response withCompletionHandler:nil];
+    return [self execStatus:MPKitReturnCodeSuccess];
+}
+
+
 /** SwrvePushResponseDelegate
     Implement the following methods if you want to interact with a push action reponse
  **/
 
 - (void) didReceiveNotificationResponse:(UNNotificationResponse *)response withCompletionHandler:(void (^)(void))completionHandler  API_AVAILABLE(ios(10.0)){
-    
+
     NSLog(@"MPKitSwrve : didRecieveNotificationResponse was fired with the following push response: %@", response.actionIdentifier);
-    
+
     if(completionHandler) {
         completionHandler();
     }
@@ -153,7 +258,7 @@ NSString *const SwrveMParticleVersionNumber = @"1.0.0";
  **/
 
 - (void) willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler  API_AVAILABLE(ios(10.0)){
-    
+
     if(completionHandler) {
         completionHandler(UNNotificationPresentationOptionNone);
     }
@@ -209,6 +314,9 @@ NSString *const SwrveMParticleVersionNumber = @"1.0.0";
          If the execution is not successful, please use a code other than MPKitReturnCodeSuccess for the execution status.
          Please see MPKitExecStatus.h for all exec status codes
       */
+    if (_init_mode == SWRVE_INIT_MODE_MANAGED) {
+        [self startSwrveSDK:user];
+    }
     return [SwrveSDK userUpdate: user.userAttributes] == SWRVE_SUCCESS ? [self execStatus:MPKitReturnCodeSuccess] : [self execStatus:MPKitReturnCodeFail];
 }
 
@@ -244,6 +352,9 @@ NSString *const SwrveMParticleVersionNumber = @"1.0.0";
          If the execution is not successful, please use a code other than MPKitReturnCodeSuccess for the execution status.
          Please see MPKitExecStatus.h for all exec status codes
       */
+    if (_init_mode == SWRVE_INIT_MODE_MANAGED) {
+        [self startSwrveSDK:user];
+    }
     return [SwrveSDK userUpdate: user.userAttributes] == SWRVE_SUCCESS ? [self execStatus:MPKitReturnCodeSuccess] : [self execStatus:MPKitReturnCodeFail];
 }
 
@@ -269,35 +380,10 @@ NSString *const SwrveMParticleVersionNumber = @"1.0.0";
          If the execution is not successful, please use a code other than MPKitReturnCodeSuccess for the execution status.
          Please see MPKitExecStatus.h for all exec status codes
       */
-    if ([self init_called]){
-        return [self execStatus:MPKitReturnCodeSuccess];
-    }
-    static dispatch_once_t swrvePredicate;
-    
-    dispatch_once(&swrvePredicate, ^{
-        MPKitAPI *kitAPI = [[MPKitAPI alloc] init];
-        FilteredMParticleUser *currentUser = [kitAPI getCurrentUserWithKit:self];
-        NSNumber *mpid = currentUser.userId;
-    
-        self->_user_id = mpid.stringValue;
-        // If value from mpid is "0", then no mpid fetched yet - don't start SDK.
-        if ([[self user_id] isEqual:@"0"]){
-            return;
-        }
-        if (![SwrveSDK started]){
-            [SwrveSDK startWithUserId:[self user_id]];
-        }
-        self->_init_called=YES;
-        [SwrveSDK userUpdate:@{@"swrve.mparticle_ios_integration_version":SwrveMParticleVersionNumber}];
-        [SwrveSDK sendQueuedEvents];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            NSDictionary *userInfo = @{mParticleKitInstanceKey:[[self class] kitCode]};
-        
-            [[NSNotificationCenter defaultCenter] postNotificationName:mParticleKitDidBecomeActiveNotification
-                                                                object:nil
-                                                              userInfo:userInfo];
-        });
-    });
+    [self identityMethodsStart:user];
+
+    [SwrveSDK userUpdate:@{@"swrve.mparticle_ios_integration_version":SwrveMParticleVersionNumber}];
+    [SwrveSDK sendQueuedEvents];
     
     return [self execStatus:MPKitReturnCodeSuccess];
 }
@@ -305,14 +391,18 @@ NSString *const SwrveMParticleVersionNumber = @"1.0.0";
 /*
     Implement this method if your SDK should be notified when the user logs in
 */
-//- (MPKitExecStatus *)onLoginComplete:(FilteredMParticleUser *)user request:(FilteredMPIdentityApiRequest *)request {
-//     /*  Your code goes here.
-//         If the execution is not successful, please use a code other than MPKitReturnCodeSuccess for the execution status.
-//         Please see MPKitExecStatus.h for all exec status codes
-//      */
-//
-//     return [self execStatus:MPKitReturnCodeSuccess];
-//}
+- (MPKitExecStatus *)onLoginComplete:(FilteredMParticleUser *)user request:(FilteredMPIdentityApiRequest *)request {
+     /*  Your code goes here.
+         If the execution is not successful, please use a code other than MPKitReturnCodeSuccess for the execution status.
+         Please see MPKitExecStatus.h for all exec status codes
+      */
+    [self identityMethodsStart:user];
+
+    [SwrveSDK userUpdate:@{@"swrve.mparticle_ios_integration_version":SwrveMParticleVersionNumber}];
+    [SwrveSDK sendQueuedEvents];
+
+     return [self execStatus:MPKitReturnCodeSuccess];
+}
 
 /*
     Implement this method if your SDK should be notified when the user logs out
@@ -329,14 +419,17 @@ NSString *const SwrveMParticleVersionNumber = @"1.0.0";
 /*
     Implement this method if your SDK should be notified when user identities change
 */
-//- (MPKitExecStatus *)onModifyComplete:(FilteredMParticleUser *)user request:(FilteredMPIdentityApiRequest *)request {
-//     /*  Your code goes here.
-//         If the execution is not successful, please use a code other than MPKitReturnCodeSuccess for the execution status.
-//         Please see MPKitExecStatus.h for all exec status codes
-//      */
-//
-//     return [self execStatus:MPKitReturnCodeSuccess];
-//}
+- (MPKitExecStatus *)onModifyComplete:(FilteredMParticleUser *)user request:(FilteredMPIdentityApiRequest *)request {
+     /*  Your code goes here.
+         If the execution is not successful, please use a code other than MPKitReturnCodeSuccess for the execution status.
+         Please see MPKitExecStatus.h for all exec status codes
+      */
+    [self identityMethodsStart:user];
+
+    [SwrveSDK userUpdate:@{@"swrve.mparticle_ios_integration_version":SwrveMParticleVersionNumber}];
+    [SwrveSDK sendQueuedEvents];
+     return [self execStatus:MPKitReturnCodeSuccess];
+}
 
 #pragma mark e-Commerce
 /*
@@ -345,7 +438,7 @@ NSString *const SwrveMParticleVersionNumber = @"1.0.0";
     expand the received commerce event into regular events and log them accordingly (see sample code below)
     Please see MPCommerceEvent.h > MPCommerceEventAction for complete list
 */
- - (MPKitExecStatus *)logCommerceEvent:(MPCommerceEvent *)commerceEvent {
+ - (MPKitExecStatus *)routeCommerceEvent:(MPCommerceEvent *)commerceEvent {
      MPKitExecStatus *execStatus = [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode] returnCode:MPKitReturnCodeSuccess forwardCount:0];
      NSString* currency = commerceEvent.currency ? : @"USD";
 
@@ -362,7 +455,7 @@ NSString *const SwrveMParticleVersionNumber = @"1.0.0";
          NSArray *expandedInstructions = [commerceEvent expandedInstructions];
 
          for (MPCommerceEventInstruction *commerceEventInstruction in expandedInstructions) {
-             [self logEvent:commerceEventInstruction.event];
+             [self logBaseEvent:commerceEventInstruction.event];
              [execStatus incrementForwardCount];
          }
      }
@@ -375,19 +468,29 @@ NSString *const SwrveMParticleVersionNumber = @"1.0.0";
     Implement this method if your SDK logs user events.
     Please see MPEvent.h
 */
- - (MPKitExecStatus *)logEvent:(MPEvent *)event {
+- (nonnull MPKitExecStatus *)logBaseEvent:(nonnull MPBaseEvent *)event {
+    if ([event isKindOfClass:[MPEvent class]]) {
+        return [self routeEvent:(MPEvent *)event];
+    } else if ([event isKindOfClass:[MPCommerceEvent class]]) {
+        return [self routeCommerceEvent:(MPCommerceEvent *)event];
+    } else {
+        return [[MPKitExecStatus alloc] initWithSDKCode:@1145 returnCode:MPKitReturnCodeUnavailable];
+    }
+}
+
+ - (MPKitExecStatus *)routeEvent:(MPEvent *)event {
      /*  Your code goes here.
          If the execution is not successful, please use a code other than MPKitReturnCodeSuccess for the execution status.
          Please see MPKitExecStatus.h for all exec status codes
       */
      if (event.type == MPEventTypeOther) {
-         if ( [event.info valueForKey:@"given_currency"] && [event.info valueForKey:@"given_amount"] ) {
-             NSString* givenCurrency = [event.info valueForKey:@"given_currency"];
-             NSNumber* givenAmount = [event.info valueForKey:@"given_amount"];
+         if ( [event.customAttributes valueForKey:@"given_currency"] && [event.customAttributes valueForKey:@"given_amount"] ) {
+             NSString* givenCurrency = [event.customAttributes valueForKey:@"given_currency"];
+             NSNumber* givenAmount = [event.customAttributes valueForKey:@"given_amount"];
              return [SwrveSDK currencyGiven:givenCurrency givenAmount:[givenAmount doubleValue]] == SWRVE_SUCCESS ? [self execStatus:MPKitReturnCodeSuccess] : [self execStatus:MPKitReturnCodeFail];
          }
      }
-     return [SwrveSDK event:[NSString stringWithFormat:@"%@.%@", [event.typeName lowercaseString], event.name] payload:event.info] == SWRVE_SUCCESS ? [self execStatus:MPKitReturnCodeSuccess] : [self execStatus:MPKitReturnCodeFail];
+     return [SwrveSDK event:[NSString stringWithFormat:@"%@.%@", [event.typeName lowercaseString], event.name] payload:event.customAttributes] == SWRVE_SUCCESS ? [self execStatus:MPKitReturnCodeSuccess] : [self execStatus:MPKitReturnCodeFail];
  }
 
 /*
@@ -401,7 +504,7 @@ NSString *const SwrveMParticleVersionNumber = @"1.0.0";
       */
      NSString* screen_name=event.name;
      NSString* event_name=[NSString stringWithFormat:@"screen_view.%@", screen_name];
-     return [SwrveSDK event:event_name payload:event.info] == SWRVE_SUCCESS ? [self execStatus:MPKitReturnCodeSuccess] : [self execStatus:MPKitReturnCodeFail];
+     return [SwrveSDK event:event_name payload:event.customAttributes] == SWRVE_SUCCESS ? [self execStatus:MPKitReturnCodeSuccess] : [self execStatus:MPKitReturnCodeFail];
  }
 
 #pragma mark Assorted

@@ -1,2 +1,2 @@
-github "Swrve/SwrveSDK" ~> 6.3
-github "mparticle/mparticle-apple-sdk" ~> 7.7.0
+github "Swrve/SwrveSDK" ~> 6.7
+github "mparticle/mparticle-apple-sdk" ~> 8

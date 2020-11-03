@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
     s.name             = "Swrve-mParticle"
-    s.version          = "1.0.0"
+    s.version          = "2.0.0"
     s.summary          = "Swrve integration for mParticle"
 
     s.description      = <<-DESC
@@ -13,8 +13,8 @@ Pod::Spec.new do |s|
     s.source           = { :git => "https://github.com/swrve-services/mparticle-apple-integration-swrve.git", :tag => s.version.to_s }
     s.social_media_url = "https://twitter.com/Swrve_Inc"
 
-    s.ios.deployment_target = "6.0"
+    s.ios.deployment_target = "10.0"
     s.ios.source_files      = 'Swrve-mParticle/*.{h,m}'
-    s.ios.dependency 'mParticle-Apple-SDK', '~> 7'
-    s.ios.dependency 'SwrveSDK', '~> 6.3'
+    s.ios.dependency 'mParticle-Apple-SDK', '~> 8'
+    s.ios.dependency 'SwrveSDK', '~> 6.7'
 end
