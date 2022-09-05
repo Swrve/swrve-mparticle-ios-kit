@@ -8,7 +8,14 @@
 #import "SwrveSDK.h"
 #endif
 
-NSString *const SwrveMParticleVersionNumber = @"2.0.0";
+#if defined(__has_include) && __has_include(<SwrveSDKCommon/SwrveLogger.h>)
+#import <SwrveSDKCommon/SwrveLogger.h>
+#else
+#import "SwrveLogger.h"
+#endif
+
+NSString *const SwrveMParticleVersionNumber = @"3.0.0";
+static dispatch_once_t swrvePredicate = 0;
 
 @implementation MPKitSwrve
 /*
@@ -55,9 +62,9 @@ NSString *const SwrveMParticleVersionNumber = @"2.0.0";
         external_user_id = user.userId.stringValue;
         if ([[SwrveSDK externalUserId]  isEqual: @""] || [SwrveSDK externalUserId] != external_user_id) {
             [SwrveSDK identify:external_user_id onSuccess:^(NSString *status, NSString* swrveUserId){
-                DebugLog(@"Swrve Identity call successful. External ID: %@ . Status: %@ . Swrve User ID: %@", external_user_id, status, swrveUserId );
+                [SwrveLogger debug:@"Swrve Identity call successful. External ID: %@ . Status: %@ . Swrve User ID: %@", external_user_id, status, swrveUserId];
             } onError:^(NSInteger httpCode, NSString *errorMessage){
-                DebugLog(@"Swrve Identity call failed with code %li . Message: %@", (long)httpCode, errorMessage);
+                [SwrveLogger debug:@"Swrve Identity call failed with code %li . Message: %@", (long)httpCode, errorMessage];
             }];
             self->_init_called = YES;
             return;
@@ -68,9 +75,9 @@ NSString *const SwrveMParticleVersionNumber = @"2.0.0";
             external_user_id = user.userIdentities[@(_user_id_type)];
             if([[SwrveSDK externalUserId] isEqual: @""] || [SwrveSDK externalUserId] != external_user_id) {
                 [SwrveSDK identify:external_user_id onSuccess:^(NSString *status, NSString* swrveUserId){
-                    DebugLog(@"Swrve Identity call successful. External ID: %@ . Status: %@ . Swrve User ID: %@", external_user_id, status, swrveUserId );
+                    [SwrveLogger debug:@"Swrve Identity call successful. External ID: %@ . Status: %@ . Swrve User ID: %@", external_user_id, status, swrveUserId];
                 } onError:^(NSInteger httpCode, NSString *errorMessage){
-                    DebugLog(@"Swrve Identity call failed with code %li . Message: %@", (long)httpCode, errorMessage);
+                    [SwrveLogger debug:@"Swrve Identity call failed with code %li . Message: %@", (long)httpCode, errorMessage];
                 }];
                 self->_init_called = YES;
                 return;
@@ -93,7 +100,7 @@ NSString *const SwrveMParticleVersionNumber = @"2.0.0";
 
 #pragma mark Kit instance and lifecycle
 - (MPKitExecStatus *)didFinishLaunchingWithConfiguration:(NSDictionary *)configuration {
-    DebugLog(@"MPKitSwrve : configuration: %@", configuration);
+    [SwrveLogger debug:@"MPKitSwrve : configuration: %@", configuration];
     int appId = [configuration[@"app_id"] intValue];
     NSString *apiKey = configuration[@"api_key"];
     if (!apiKey || !appId) {
@@ -155,7 +162,6 @@ NSString *const SwrveMParticleVersionNumber = @"2.0.0";
     /*
         Start your SDK here. The configuration dictionary can be retrieved from self->_configuration
     */
-    static dispatch_once_t swrvePredicate;
     
     dispatch_once(&swrvePredicate, ^{
         int appId = [self->_configuration[@"app_id"] intValue];
@@ -519,5 +525,11 @@ NSString *const SwrveMParticleVersionNumber = @"2.0.0";
 //
 //     return [self execStatus:MPKitReturnCodeSuccess];
 // }
+
+#pragma mark Testing Only
+
+- (void)resetSwrvePredicate {
+    swrvePredicate = 0;
+}
 
 @end
