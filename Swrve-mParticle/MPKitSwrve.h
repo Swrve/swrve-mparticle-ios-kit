@@ -1,3 +1,4 @@
+#import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 
 #if defined(__has_include) && __has_include(<SwrveSDKCommon/SwrvePush.h>)
@@ -11,7 +12,13 @@
 #import "mParticle.h"
 #endif
 
-@interface MPKitSwrve : NSObject <MPKitProtocol, SwrvePushResponseDelegate>
+#if defined(__has_include) && __has_include(<SwrveSDK/SwrveDeeplinkDelegate.h>)
+#import <SwrveSDK/SwrveDeeplinkDelegate.h>
+#else
+#import "SwrveDeeplinkDelegate.h"
+#endif
+
+@interface MPKitSwrve : NSObject <MPKitProtocol, SwrvePushResponseDelegate, SwrveDeeplinkDelegate>
 
 @property (nonatomic, strong, nonnull) NSDictionary *configuration;
 @property (nonatomic, strong, nullable) NSDictionary *launchOptions;

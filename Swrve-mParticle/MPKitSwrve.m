@@ -95,6 +95,26 @@ static dispatch_once_t swrvePredicate = 0;
     }
 }
 
+#pragma mark Deep Links
+// IMPORTANT
+// This is the only method we are adding to the original implementation for M&S.
+// If this ever needs to be updated, please make sure this still works
+// and that config.deeplinkDelegate = self is set.
+- (void)handleDeeplink:(NSURL *)nsurl {
+  NSLog(@"MPKitSwrve : handleDeeplink: %@", nsurl.path);
+
+  // Check if this is an universal link
+  if ([[[nsurl scheme] lowercaseString] hasPrefix:@"http"]) {
+    NSUserActivity* userActivity = [[NSUserActivity alloc] initWithActivityType:NSUserActivityTypeBrowsingWeb];
+    userActivity.webpageURL = nsurl;
+    [[UIApplication sharedApplication].delegate application:[UIApplication sharedApplication] continueUserActivity:userActivity restorationHandler:nil];
+  } else {
+    // Should be custom URL Scheme
+    [[UIApplication sharedApplication] openURL:nsurl options:@{} completionHandler:^(BOOL success) {
+        [SwrveLogger debug:@"Opening url [%@] successfully: %d", nsurl, success];
+    }];
+  }
+}
 
 #pragma mark - MPKitInstanceProtocol methods
 
@@ -177,6 +197,7 @@ static dispatch_once_t swrvePredicate = 0;
         config.pushResponseDelegate = self;
         config.pushEnabled = YES;
         config.autoCollectDeviceToken = NO;
+        config.deeplinkDelegate = self;
         config.pushNotificationEvents = [[NSSet alloc] initWithArray:@[@"other.swrve_push_opt_in"]];
         config.appGroupIdentifier = [@"group." stringByAppendingString:[[NSBundle mainBundle] bundleIdentifier]];
         
